@@ -1,0 +1,95 @@
+# Redrob Hackathon — Submission Metadata
+
+team_name: "Deepanshu"
+
+primary_contact:
+  name: "Deepanshu"
+  email: "deepanshusnpt@gmail.com"
+  phone: "+91-8708989755"       # TODO: fill in your phone number
+
+team_members:
+  - name: "Deepanshu"
+    email: "deepanshusnpt@gmail.com"
+    role: "Solo Participant"
+
+# ============================================================================
+# Code and reproducibility
+# ============================================================================
+github_repo: "https://github.com/I-Deepanshu/INDIARUNS"
+sandbox_link: "https://huggingface.co/spaces/FILL_IN/redrob-ranker"  # TODO: fill in
+
+reproduce_command: "python rank.py --candidates ./candidates.jsonl --out ./submission.csv"
+
+# ============================================================================
+# Compute environment
+# ============================================================================
+compute:
+  platform: "Windows 11 Home (Local machine)"
+  cpu_cores: 8
+  ram_gb: 15
+  python_version: "3.13.5"
+  os: "Windows 11 Home Single Language"
+  uses_gpu_for_inference: false
+  has_network_during_ranking: false
+  pre_computation_required: false
+  pre_computation_time_minutes: 0
+
+# ============================================================================
+# AI tools declaration
+# ============================================================================
+ai_tools_used:
+  - "Claude"
+
+ai_usage_summary: |
+  Used Claude (claude-sonnet-4-6) for architecture discussion, scoring formula
+  design, and code review. The candidate scoring logic, keyword sets, and
+  anti-honeypot design were developed through iterative dialogue with the AI
+  assistant. No candidate data was fed to any LLM — all scoring is done with
+  explicit Python rules at runtime. Final implementation decisions were made by
+  the participant.
+
+# ============================================================================
+# Approach summary
+# ============================================================================
+methodology_summary: |
+  Two-layer deterministic ranker (stdlib + math only, ~70 seconds for 100K).
+
+  Layer 1 — Relevance score (six components):
+  - Title/Career gate (45%): title_score × 0.65 + career_score × 0.35.
+    Title weight raised to 0.65 so non-AI titles cannot be rescued by dense
+    career keywords alone. 45+ Tier-A title patterns; 27+ TITLE_NEGATIVE
+    entries (HR Manager, HR Business Partner, Program Manager, Recruiter, etc.)
+    → hard cap at 0.10 final score for confirmed honeypots.
+    Career score: 70+ production AI terms scanned per role description
+    (FAISS, Qdrant, reranking, NDCG, RAG pipeline, cross-encoder, ColBERT…),
+    duration-weighted; consulting penalty (TCS/Infosys/HCL ≥ 90% → ×0.05).
+  - Skill depth (20%): proficiency × sqrt(duration/36) × log-endorsements.
+    Corroboration multiplier shrinks skills ×0.10 when career_score < 0.08
+    — primary anti-keyword-stuffing defence. All short keywords (≤4 chars:
+    RAG, LLM, NLP, BM25…) use word-boundary matching to prevent false
+    positives (e.g. "rag" in "storage" is correctly excluded).
+  - Experience (15%): Gaussian centred at 7 years (JD ideal: 6–8), σ=2.5.
+  - Location (12%): India ≥ 0.62; Pune/Noida = 1.00; best-match city wins.
+  - Education (8%): tier lookup + specific field-of-study bonus (CS, ML, etc.;
+    "cs" substring excluded to avoid matching "economics").
+
+  Layer 2 — Availability multiplier (swings final score ±40%):
+  open_to_work × 0.25 + recency × 0.25 + recruiter_response_rate × 0.20
+  + notice_score × 0.20 + interview_completion_rate × 0.10 + github_bonus.
+  All signals use explicit None checks — 0.0 and 0 values handled correctly
+  (notice_period_days=0 → immediately available → ns=1.00).
+
+  final = relevance × (0.60 + 0.40 × availability)
+
+  Normalization: linear 0.9900 → 0.1000 over top 100, no ties.
+  Top-15 result: all ts=1.00 (Senior/Lead/Staff ML/NLP/AI/Search Engineers).
+
+# ============================================================================
+# Declarations
+# ============================================================================
+declarations:
+  read_submission_spec: true
+  code_is_original_work: true
+  no_collusion: true
+  honeypot_check_done: true
+  reproduction_tested: true
